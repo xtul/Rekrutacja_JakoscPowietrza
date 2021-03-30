@@ -1,0 +1,129 @@
+﻿@using EmtelRekrutacja.Entities;
+@{
+	List<Location> LocationList = (List<Location>)ViewData["Locations"];
+}
+
+@if (LocationList is null || LocationList.Count < 1) {
+	<p>Niestety, nie udało się znaleźć żadnych stacji badawczych.</p>
+
+} else {
+	<select id="dropdown" name="LocationList" onchange="displayTables()">
+		<option value="0">Wybierz stację pogodową</option>
+
+		@foreach (var location in LocationList) {
+			<option value="@location.Id">@location.StationName</option>
+		}
+
+	</select>
+
+	<div id="loading" class="loading hidden">
+		<p>Wczytywanie...</p>
+	</div>
+
+	<div id="stationInfo" class="station-info hidden row">
+		<div class="col-md-6 col-sm-12">
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Sensor</th>
+						<th>Wartość</th>
+					</tr>
+				</thead>
+				<tbody id="stationInfo-params">
+				</tbody>
+			</table>
+		</div>
+		<div class="col-md-6 col-sm-12">
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Pomiar</th>
+						<th>Poziom</th>
+					</tr>
+				</thead>
+				<tbody id="stationInfo-index">
+					
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+<script>
+	const dropdown = document.getElementById('dropdown');
+	const loading = document.getElementById('loading');
+	const stationInfo = document.getElementById('stationInfo');
+	const stationInfoParams = document.getElementById('stationInfo-params');
+	const stationInfoIndex = document.getElementById('stationInfo-index');
+
+	async function displayTables() {
+		const id = dropdown.value;
+
+		if (id == 0) {
+			stationInfo.classList.add('hidden');
+			return;
+		}
+
+		loading.classList.remove('hidden');
+
+		// clear previous info
+		while (stationInfoParams.firstChild) {
+			stationInfoParams.removeChild(stationInfoParams.lastChild);
+		}
+		while (stationInfoIndex.firstChild) {
+			stationInfoIndex.removeChild(stationInfoIndex.lastChild);
+		}
+
+		const location = await callApi("summary", id);
+		const sensorValues = location.sensorValues;
+		const measurements = location.measurements;
+
+		// create a table row for each sensor in this location
+		fillSensorTable(sensorValues)
+		// create a table row for each measurement
+		fillIndexTable(measurements);
+
+		stationInfo.classList.remove('hidden');
+		loading.classList.add('hidden');
+	}
+
+	async function callApi(endpoint, id) {
+		return await fetch('/api/' + endpoint + '/' + id)
+			.then(function (response) {
+				return response.json();
+			});
+	}
+
+	function constructTableRow(key, value, element) {
+		let tr = document.createElement('tr');
+		let sensorTd = document.createElement('td');
+		let valueTd = document.createElement('td');
+
+		sensorTd.innerHTML = key;
+		valueTd.innerHTML = value;
+
+		tr.appendChild(sensorTd);
+		tr.appendChild(valueTd);
+		element.appendChild(tr);
+	}
+
+	function fillSensorTable(sensorValues) {
+		for (i = 0; i < sensorValues.length; i++) {
+			const sensorSplit = sensorValues[i].split(':');
+			const sensorName = sensorSplit[0];
+			const sensorValue = sensorSplit[1] * 1000 + 'mg/m³';
+
+			constructTableRow(sensorName, sensorValue, stationInfoParams);
+		}
+	}
+
+	function fillIndexTable(measurements) {
+		for (i = 0; i < measurements.length; i++) {
+			const measureSplit = measurements[i].split(':');
+			const measureName = measureSplit[0];
+			const measureValue = measureSplit[1];
+
+			constructTableRow(measureName, measureValue, stationInfoIndex);
+		}
+	}
+</script>
