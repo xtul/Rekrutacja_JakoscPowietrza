@@ -29,9 +29,6 @@ namespace EmtelRekrutacja {
 				await DownloadLocations();
 			}
 
-			foreach (var location in _locations) {
-				_logger.LogInformation($"new location - {location.Id}");
-			}
 			return _locations;
 		}
 	}

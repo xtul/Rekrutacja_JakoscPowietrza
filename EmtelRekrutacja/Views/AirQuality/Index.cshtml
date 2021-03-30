@@ -111,7 +111,7 @@
 		for (i = 0; i < sensorValues.length; i++) {
 			const sensorSplit = sensorValues[i].split(':');
 			const sensorName = sensorSplit[0];
-			const sensorValue = sensorSplit[1] * 1000 + 'mg/m³';
+			const sensorValue = sensorSplit[1] + 'μg/m³';
 
 			constructTableRow(sensorName, sensorValue, stationInfoParams);
 		}
