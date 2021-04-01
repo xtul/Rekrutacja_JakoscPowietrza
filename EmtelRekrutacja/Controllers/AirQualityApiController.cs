@@ -1,5 +1,6 @@
 ﻿using EmtelRekrutacja.Entities;
 using Flurl.Http;
+using LazyCache;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -11,9 +12,23 @@ namespace EmtelRekrutacja.Controllers {
 	[Route("api")]
 	[ApiController]
 	public class AirQualityApiController : ControllerBase {
+		public IAppCache _cache;
+
+		public AirQualityApiController(IAppCache cache) {
+			_cache = cache;
+		}
+
 		[HttpGet]
 		[Route("summary/{stationId}")]
 		public async Task<Summary> GetSummaryAsync(int stationId) {
+			var result = await _cache.GetOrAdd($"summary-{stationId}",
+				() => GenerateSummary(stationId),
+				TimeSpan.FromMinutes(10));
+
+			return result;
+		}
+
+		private async Task<Summary> GenerateSummary(int stationId) {
 			// get all sensors and their newest values
 			List<string> sensorValues = new();
 			Sensor[] availableSensors = await GetArrayAsync<Sensor>("http://api.gios.gov.pl/pjp-api/rest/station/sensors", stationId);
@@ -47,7 +62,7 @@ namespace EmtelRekrutacja.Controllers {
 			};
 		}
 
-		public async Task<T> GetSingleAsync<T>(string url, int id) {
+		private async Task<T> GetSingleAsync<T>(string url, int id) {
 			if (id == 0) {
 				return default;
 			}
@@ -59,7 +74,7 @@ namespace EmtelRekrutacja.Controllers {
 			}
 		}
 
-		public async Task<T[]> GetArrayAsync<T>(string url, int id) {
+		private async Task<T[]> GetArrayAsync<T>(string url, int id) {
 			if (id == 0) {
 				return default;
 			}

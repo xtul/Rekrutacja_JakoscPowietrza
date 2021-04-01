@@ -22,6 +22,8 @@ namespace EmtelRekrutacja {
 			services.AddRazorPages();
 			services.AddControllersWithViews();
 
+			services.AddLazyCache();
+
 			services.AddSingleton<LocationProvider>();
 		}
 
